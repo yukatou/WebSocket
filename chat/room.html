@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" /> 
+    <meta id="viewport" name="viewport" content="width=320; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" /> 
+    <meta content="text/css" http-equiv="content-style-type" />
+    <meta content="text/javascript" http-equiv="content-script-type" />
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript"> google.load("jquery", "1.4.2"); </script>
+    <script type="text/javascript" src='js/jquery.scrollTo-1.4.2.js'></script>
+    <script type="text/javascript" src='js/jquery.query-2.1.7.js'></script>
+    <script type="text/javascript" src='http://cdn.socket.io/stable/socket.io.js'></script>
+    <link rel="stylesheet" href="stylesheets/iphone.css" /> 
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+    <title>ぷちチャット</title>
+    <script>
+
+    $(function(){
+            var room = $.query.get('room')
+            if(!room) {
+                alert('room not found');
+                return;
+            }
+
+            var scroll = function() {
+                $('#show').scrollTo("100%");
+            }
+
+            var timer = setInterval(function(){
+                socket.send('keepalive');
+            }, 10000);
+
+            var socket = new io.Socket('yukatou.dip.jp', {port:8080});
+
+            socket.connect();
+
+            socket.on('connect', function() {
+                socket.send({'type':'init', 'room':room});
+            });
+
+            socket.on('message',  function(data) {
+            
+                switch(data.type) {
+                    case 'count':
+                        $("#count").html(data.count);
+                        break;
+
+                    case 'message':
+                        $("#show").append(data.username + " : " + data.message + "<br />");
+                        scroll();
+                        break;
+
+                    default : break;
+                }
+            });
+
+            $("#send").click(function() {
+                var message = $('#text').val();
+                var username = $('#nickname').val() || '名無し';
+                if(message == "")  return; 
+                
+                socket.send({
+                    'type' : 'message',
+                    'username': username ,
+                    'message': message
+                });
+                $("#text").val("");
+            });
+
+
+    });
+    </script>
+</head>
+<body>
+    <div id="header"> 
+        <h1>ぷちチャット</h1> 
+        <a id="backButton" href=".">退席</a>
+    </div> 
+    <h1>現在<span id="count">0</span>人がログイン中</h1>
+    <ul class="edit rounded"> 
+            <li><div id="show" style="overflow:auto; height:150px;"></div></li> 
+    </ul>
+    <h1>入力フォーム</h1>
+    <ul>
+            <li><input type="text" size="80" id="text" /></li>
+    </ul>
+    <p><a href="#" class="green button" id="send">発言</a></p>
+    <div id="message"></div>
+    <div id="debug"></div>
+</body>
+</html>
